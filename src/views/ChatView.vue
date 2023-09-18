@@ -134,10 +134,7 @@ export default defineComponent({
           // setIsCallAccepted(true);
           callObject.value = undefined;
           // setCallObject(undefined);
-          console.log(
-            "Call @cometchat/chat-sdk-javascriptaccepted successfully:",
-            call
-          );
+
           let CurrentSessionId = call.sessionId;
           const authToken: string = loggedInUser.value?.getAuthToken()!;
           let callToken = await CometChatCalls.generateToken(
@@ -162,8 +159,7 @@ export default defineComponent({
                 },
                 onCallEnded: () => {
                   console.log("Call ended");
-                  // if (isCallEnded) {
-                  console.log("clilcked in on");
+
                   CometChatCalls.endSession();
                   CometChat.endCall(CurrentSessionId);
                   router.push({ path: "/" });

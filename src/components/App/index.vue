@@ -1,13 +1,15 @@
 <template>
   <div class="app">
     <div v-if="loggedInUser" class="main">
-      <button
-        @click="logout"
-        :style="computedStyles.logOutStyle"
-        class="logout"
-      >
-        logout
-      </button>
+      <div class="tooltip">
+        <button
+          @click="logout"
+          :style="computedStyles.logOutStyle"
+          class="logout"
+        ></button>
+        <span class="tooltiptext">Logout</span>
+      </div>
+
       <div class="chats">
         <CometChatConversationsWithMessages key="test" />
         <CometChatIncomingCall />
@@ -42,10 +44,21 @@ export default defineComponent({
     CometChatConversationsWithMessages,
     CometChatIncomingCall,
   },
+  props: {
+    tooltipText: {
+      type: String,
+      default: "Tooltip text",
+    },
+    position: {
+      default: "top",
+      type: String,
+    },
+  },
 
   setup() {
     const loggedInUser = ref<CometChat.User | null>();
     const { theme }: any = inject("theme");
+    const showText = ref(false);
 
     (async () => {
       await CometChatUIKit.getLoggedinUser()!
@@ -87,12 +100,12 @@ export default defineComponent({
         : {};
     });
 
-    return { loggedInUser, logout, handleUserLogin, computedStyles };
+    return { loggedInUser, logout, handleUserLogin, computedStyles, showText };
   },
 });
 </script>
 
-<style>
+<style scoped>
 .main {
   display: flex;
   flex-direction: column;
@@ -105,5 +118,35 @@ export default defineComponent({
   width: 100vw;
   height: 95vh;
   max-height: 95vh;
+}
+
+.logout {
+  position: relative;
+  cursor: pointer;
+}
+
+.tooltip {
+  width: fit-content;
+  position: relative;
+  right: 0;
+  flex-direction: row-reverse;
+}
+
+.tooltip .tooltiptext {
+  visibility: hidden;
+  width: 120px;
+  background-color: black;
+  color: #fff;
+  text-align: center;
+  border-radius: 6px;
+  padding: 5px 0;
+
+  /* Position the tooltip */
+  position: absolute;
+  z-index: 1;
+}
+
+.tooltip:hover .tooltiptext {
+  visibility: visible;
 }
 </style>

@@ -17,7 +17,7 @@ export default async function firebaseInitialize() {
 
   const app = initializeApp(firebaseConfig); // Initialize Firebase App
   const messaging = getMessaging(app); // Initialize Firebase Messaging
-  console.log("messaging<><><>", app);
+
   // Your Firebase Messaging and CometChat setup code here
 
   getToken(messaging, {
@@ -45,23 +45,16 @@ export default async function firebaseInitialize() {
     });
 
   onMessage(messaging, function (payload) {
-    console.log("messaging.onMessage", payload);
-
     const messageData = JSON.parse(payload?.data?.message!);
-    console.log("messageData", messageData);
     const uid = messageData.sender;
     const guid = messageData?.data?.entities?.receiver?.entity?.guid;
     const callType = messageData.type;
     const receiverType = messageData.receiverType;
     const sessionid = messageData?.data?.entities?.on?.entity?.sessionid;
-    // const userId = guid || uid;
-    const myIcon = messageData?.data?.entities?.sender?.entity?.avatar;
-    console.log(guid, myIcon);
-    // Store the uid in localStorage
-    localStorage.setItem("uid", uid);
-    localStorage.setItem("guid", guid);
+    const myIcon =
+      messageData?.data?.entities?.sender?.entity?.avatar ||
+      messageData?.data?.entities?.by?.entity?.avatar;
 
-    console.log("uid in firebase", uid);
     var notificationTitle = payload?.data?.title;
     var notificationOptions = {
       body: `${payload?.data?.title}: ${payload?.data?.alert}`,
@@ -73,8 +66,6 @@ export default async function firebaseInitialize() {
     );
 
     notification.onclick = function (event) {
-      console.log("messageData.category", messageData.category);
-
       // Define the relative URL path for your chat page
       let chatUrl = "/chats";
 
@@ -100,29 +91,5 @@ export default async function firebaseInitialize() {
       // Close the notification
       notification.close();
     };
-
-    // notification.onclick = function (event) {
-    //   console.log("messageData.category", messageData.category);
-    //   if (
-    //     messageData.category === "call" ||
-    //     callType === "audio" ||
-    //     callType === "video" ||
-    //     sessionid
-    //   ) {
-    //     window.open(
-    //       `http://localhost:3000/chats?uid=${uid}&callType=${callType}&receiverType=${receiverType}&sessionid=${sessionid}`
-    //     );
-    //   } else {
-    //     if (guid) {
-    //       window.open(`http://localhost:3000/chats?guid=${guid}`);
-    //     } else {
-    //       window.open(`http://localhost:3000/chats?uid=${uid}`);
-    //     }
-    //   }
-
-    //   notification.close();
-    // };
   });
 }
-
-// window.open(`http://localhost:3000/chats?openChatwith=${userId}`);
