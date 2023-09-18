@@ -21,6 +21,7 @@ import "@cometchat/chat-uikit-vue/dist/style.css";
   try {
     await CometChatUIKit.init(uiKitSettings);
     console.log("Initialization completed successfully");
+    const theme: any = ref(new CometChatTheme({}));
 
     const app = createApp(App);
 
@@ -45,7 +46,6 @@ import "@cometchat/chat-uikit-vue/dist/style.css";
         theme.value.palette.setMode("dark");
       }
     }
-    const theme: any = ref(new CometChatTheme({}));
     const isMobileView: any = ref(false);
     app.provide("theme", { theme, switchThemeMode });
     app.provide("isMobileView", { isMobileView, switchView });

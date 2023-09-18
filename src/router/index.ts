@@ -13,10 +13,6 @@ const routes: Array<RouteRecordRaw> = [
     path: "/chats",
     name: "chat",
     component: ChatsView,
-    // beforeEnter: (to, from, next) => {
-    //   to.query = {}; // Clear the query parameters
-    //   next();
-    // },
   },
 ];
 

@@ -292,7 +292,8 @@ export default defineComponent({
     const styles: any = {
       loginWrapperStyle: () => {
         return {
-          height: "95%",
+          height: "100vh",
+          width: "100%",
           background: theme.value.palette.getAccent100(),
         };
       },
@@ -433,7 +434,7 @@ export default defineComponent({
 .login__wrapper {
   height: 95%;
   width: 100%;
-  overflow-y: auto;
+  overflow: hidden;
 }
 
 .login__page {
@@ -655,6 +656,7 @@ button {
   }
   .login__wrapper {
     height: max-content !important;
+    background: rgb(240, 240, 240) !important;
   }
   .footer__section {
     position: initial !important;

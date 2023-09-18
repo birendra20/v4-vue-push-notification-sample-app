@@ -1,16 +1,8 @@
 <template>
   <div class="Main">
-    <div v-if="queryParams">
-      <p>there?</p>
-      <p>UID: {{ queryParams.uid }}</p>
-      <p>Call Type: {{ queryParams.callType }}</p>
-      <p>Receiver Type: {{ queryParams.receiverType }}</p>
-      <p>Session ID: {{ queryParams.sessionid }}</p>
-    </div>
-
-    <div v-if="(chatWithUser, queryParams)">
-      <div ref="myElementRef" v-if="isCallAccepted"></div>
-      <div v-else>
+    <div v-if="chatWithUser && queryParams">
+      <div ref="myElementRef" v-if="isCallAccepted" class="chats"></div>
+      <div v-else class="chats">
         <CometChatMessages :user="chatWithUser"></CometChatMessages>
 
         <CometChatIncomingCall
@@ -25,19 +17,30 @@
         />
       </div>
     </div>
-    <div v-if="chatWithGroup">
-      <CometChatMessages :group="chatWithGroup"></CometChatMessages>
+    <div v-if="chatWithGroup && queryParams">
+      <div ref="myElementRef" v-if="isCallAccepted" class="chats"></div>
+      <div>
+        <CometChatMessages :group="chatWithGroup"></CometChatMessages>
+        <CometChatIncomingCall
+          v-if="callObject"
+          :call="callObject"
+          :onAccept="
+            () => queryParams.sessionid && acceptCall(queryParams.sessionid)
+          "
+          :onDecline="
+            () => queryParams.sessionid && cancelCall(queryParams.sessionid)
+          "
+        />
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-// :onDecline="cancelCall(sessionid)"
-import { defineComponent, onMounted, reactive, ref, toRefs } from "vue";
+import { defineComponent, onBeforeMount, onMounted, reactive, ref } from "vue";
 import { CometChat } from "@cometchat/chat-sdk-javascript";
 import { useRoute, useRouter } from "vue-router";
 import { CometChatCalls } from "@cometchat/calls-sdk-javascript";
-import { useQueryParams } from "../useQueryParams";
 
 import {
   CometChatIncomingCall,
@@ -50,7 +53,7 @@ export default defineComponent({
     CometChatMessages,
     CometChatIncomingCall,
   },
-  setup() {
+  async setup() {
     let chatWithUser = ref<CometChat.User>();
     let chatWithGroup = ref<CometChat.Group>();
     let callObject = ref<CometChat.Call>();
@@ -64,8 +67,6 @@ export default defineComponent({
     const queryParams = reactive(route.query);
 
     let { uid, callType, guid, sessionid, receiverType } = queryParams;
-
-    console.log("queryParams2", uid, callType, guid, sessionid, receiverType);
 
     onMounted(() => {
       const searchParams = new URLSearchParams(window.location.search);
@@ -83,7 +84,7 @@ export default defineComponent({
       Object.assign(queryParams, params);
     });
 
-    (async () => {
+    const initializeUserAndListeners = async () => {
       await CometChatUIKit.getLoggedinUser()!
         .then((user) => {
           console.log("user", user);
@@ -93,38 +94,38 @@ export default defineComponent({
         .catch((error) => {
           console.log("error");
         });
-    })();
 
-    if (uid) {
-      CometChat.getUser(uid)
-        .then((user: CometChat.User) => {
-          chatWithUser.value = user;
-        })
-        .catch((error: any) => {
-          console.log("user does not exit", error);
-        });
-    }
-
-    if (guid) {
-      CometChat.getGroup(guid)
-        .then((group: CometChat.Group) => {
-          chatWithGroup.value = group;
-        })
-        .catch((error: any) => {
-          console.log("user does not exit", error);
-        });
-    }
-
-    if (uid && callType && receiverType) {
-      let call: CometChat.Call = new CometChat.Call(
-        uid,
-        callType,
-        receiverType
-      );
-      if (call) {
-        callObject.value = call;
+      if (uid) {
+        await CometChat.getUser(uid)
+          .then((user: CometChat.User) => {
+            chatWithUser.value = user;
+          })
+          .catch((error: any) => {
+            console.log("user does not exit", error);
+          });
       }
-    }
+
+      if (guid) {
+        await CometChat.getGroup(guid)
+          .then((group: CometChat.Group) => {
+            chatWithGroup.value = group;
+          })
+          .catch((error: any) => {
+            console.log("user does not exit", error);
+          });
+      }
+
+      if (uid && callType && receiverType) {
+        let call: CometChat.Call = new CometChat.Call(
+          uid,
+          callType,
+          receiverType
+        );
+        if (call) {
+          callObject.value = call;
+        }
+      }
+    };
 
     const acceptCall = async (sessionid: any) => {
       await CometChat.acceptCall(sessionid).then(
@@ -156,12 +157,8 @@ export default defineComponent({
                 onCallEndButtonPressed: () => {
                   CometChatCalls.endSession();
                   CometChat.endCall(CurrentSessionId);
-                  // if (window.location.href !== "/") {
-                  //   navigate({
-                  //     pathname: "/",   //tod
-                  //   });
-                  // }
-                  // setIsCallAccepted(false);
+
+                  router.push({ path: "/" });
                 },
                 onCallEnded: () => {
                   console.log("Call ended");
@@ -169,13 +166,7 @@ export default defineComponent({
                   console.log("clilcked in on");
                   CometChatCalls.endSession();
                   CometChat.endCall(CurrentSessionId);
-                  // setIsCallAccepted(false);
-
-                  // if (window.location.href !== "http://localhost:3000/") {
-                  //   navigate({
-                  //     pathname: "/",
-                  //   });
-                  // }
+                  router.push({ path: "/" });
                 },
 
                 onError: (error: any) => {
@@ -229,6 +220,21 @@ export default defineComponent({
       );
     };
 
+    const cancelCall = async (sessionid: string) => {
+      // setCallObject(undefined);
+      let status: string = CometChat.CALL_STATUS.REJECTED;
+      callObject.value = undefined;
+
+      await CometChat.rejectCall(sessionid, status).then(
+        (call: CometChat.Call) => {
+          console.log("Call rejected successfully", call);
+        },
+        (error: CometChat.Call) => {
+          console.log("Call rejection failed with error:", error);
+        }
+      );
+    };
+
     const callListeners = () => {
       let listnerID = "UNIQUE ID";
       CometChat.addCallListener(
@@ -236,9 +242,6 @@ export default defineComponent({
         new CometChat.CallListener({
           onIncomingCallReceived: (call: CometChat.Call) => {
             console.log("Incoming call:", call);
-            // setHomeSessionId(call.getSessionId());
-            // setHomeCallType(call.type);
-            // setCallObject(call);
           },
           onOutgoingCallAccepted: (call: CometChat.Call) => {
             console.log("Outgoing call accepted:", call);
@@ -256,26 +259,11 @@ export default defineComponent({
       );
     };
 
-    const cancelCall = async (sessionid: string) => {
-      // setCallObject(undefined);
-      console.log("rejected?????????????????????????????????????????");
-      let status: string = CometChat.CALL_STATUS.REJECTED;
-      callObject.value = undefined;
+    onBeforeMount(() => {
+      callListeners();
+      initializeUserAndListeners();
+    });
 
-      CometChat.rejectCall(sessionid, status).then(
-        (call: CometChat.Call) => {
-          console.log("Call rejected successfully", call);
-        },
-        (error: CometChat.Call) => {
-          console.log("Call rejection failed with error:", error);
-        }
-      );
-    };
-
-    // Call the function to remove query parameters after accessing their values
-    // removeQueryParams();
-    callListeners();
-    // console.log("user in ")
     return {
       chatWithUser,
       chatWithGroup,
@@ -286,15 +274,15 @@ export default defineComponent({
       myElementRef,
       isCallAccepted,
       queryParams,
-      // ...toRefs(queryParams),
     };
   },
 });
 </script>
 
 <style scoped>
-.Main {
+.chats {
   width: 100vw;
   height: 100vh;
+  max-height: 100vh !important;
 }
 </style>
